@@ -1,10 +1,6 @@
 package org.jooq.demo;
 
-import io.r2dbc.spi.ConnectionFactories;
-import io.r2dbc.spi.ConnectionFactory;
-import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.flywaydb.core.Flyway;
-import org.jetbrains.annotations.Nullable;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -12,21 +8,15 @@ import org.jooq.Table;
 import org.jooq.conf.Settings;
 import org.jooq.impl.DefaultConfiguration;
 import org.jooq.tools.JooqLogger;
-import org.jooq.tools.jdbc.MockDataProvider;
 import org.jooq.tools.jdbc.SingleConnectionDataSource;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.ResourceReaper;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-import static org.jooq.SQLDialect.POSTGRES;
 import static org.jooq.impl.DSL.using;
 
 /**
@@ -35,11 +25,15 @@ import static org.jooq.impl.DSL.using;
 public abstract class AbstractDemo {
 
     protected static JooqLogger          log = JooqLogger.getLogger(AbstractDemo.class);
-    protected static PostgreSQLContainer db;
+//    protected static PostgreSQLContainer db;
     protected static DataSource          jdbc;
-    protected static ConnectionFactory   r2dbc;
+//    protected static ConnectionFactory   r2dbc;
     protected static DSLContext          ctx;
     protected static Configuration       configuration;
+
+    protected static String dbUrl = "";
+    protected static String username = "";
+    protected static String password = "";
 
     // Utilities
     // -----------------------------------------------------------------------------------------------------------------
@@ -47,30 +41,30 @@ public abstract class AbstractDemo {
     @BeforeClass
     public static void beforeClass() throws SQLException {
         log.info("Setting up testcontainers");
-        db = new PostgreSQLContainer("postgres:latest")
-            .withUsername("postgres")
-            .withDatabaseName("postgres")
-            .withPassword("postgres");
-
-        db.start();
+//        db = new PostgreSQLContainer("postgres:latest")
+//            .withUsername("postgres")
+//            .withDatabaseName("postgres")
+//            .withPassword("postgres");
+//
+//        db.start();
 
         log.info("Connecting");
 
         // Replace with a connection pool if appropriate
         jdbc = new SingleConnectionDataSource(DriverManager.getConnection(
-            db.getJdbcUrl(),
-            db.getUsername(),
-            db.getPassword()
+            dbUrl,
+            username,
+            password
         ));
 
         // Replace with an r2dbc-pool based connection pool, if appropriate
-        r2dbc = ConnectionFactories.get(ConnectionFactoryOptions
-            .parse(db.getJdbcUrl().replace("jdbc:", "r2dbc:"))
-            .mutate()
-            .option(ConnectionFactoryOptions.USER, db.getUsername())
-            .option(ConnectionFactoryOptions.PASSWORD, db.getPassword())
-            .build()
-        );
+//        r2dbc = ConnectionFactories.get(ConnectionFactoryOptions
+//            .parse(db.getJdbcUrl().replace("jdbc:", "r2dbc:"))
+//            .mutate()
+//            .option(ConnectionFactoryOptions.USER, db.getUsername())
+//            .option(ConnectionFactoryOptions.PASSWORD, db.getPassword())
+//            .build()
+//        );
 
         ctx = using(configuration = new DefaultConfiguration()
             
@@ -79,8 +73,8 @@ public abstract class AbstractDemo {
             // non-blocking calls are run on the R2DBC Connection or ConnectionFactory. Blocking calls are annotated
             // as @org.jetbrains.annotations.Blocking
             .set(jdbc)
-            .set(r2dbc)
-            .set(POSTGRES)
+//            .set(r2dbc)
+//            .set(POSTGRES)
             .set(new Settings()
                 .withRenderFormatted(true)
             )
@@ -101,18 +95,18 @@ public abstract class AbstractDemo {
 
         log.info("Flyway migration");
         Flyway.configure()
-              .locations("filesystem:../../sakila/postgres")
-              .dataSource(db.getJdbcUrl(), db.getUsername(), db.getPassword())
+              .locations("filesystem:sakila/postgres")
+              .dataSource(dbUrl, username, password)
               .load()
               .migrate();
     }
 
-    @AfterClass
-    public static void end() {
-        if (db != null) {
-            ResourceReaper.instance().stopAndRemoveContainer(db.getContainerId(), db.getDockerImageName());
-        }
-    }
+//    @AfterClass
+//    public static void end() {
+//        if (db != null) {
+//            ResourceReaper.instance().stopAndRemoveContainer(db.getContainerId(), db.getDockerImageName());
+//        }
+//    }
 
     @Before
     public void setup() throws SQLException {

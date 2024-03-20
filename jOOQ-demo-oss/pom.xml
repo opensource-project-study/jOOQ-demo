@@ -20,7 +20,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- We're using the JDK 17 version which you can download from https://www.jooq.org/download/versions -->
-        <jooq.version>3.19.6</jooq.version>
+        <jooq.version>3.18.11</jooq.version>
         <flyway.version>8.5.11</flyway.version>
         <postgres.version>42.7.2</postgres.version>
         <log4j.version>2.17.1</log4j.version>
@@ -30,15 +30,18 @@
         <testcontainers.version>1.16.3</testcontainers.version>
         <jetbrains.annotations.version>23.0.0</jetbrains.annotations.version>
 
-        <db.username>postgres</db.username>
-        <db.password>postgres</db.password>
+        <db.url>jdbc:mysql://127.0.0.1:3306/sakila</db.url>
+        <db.username>root</db.username>
+        <db.password></db.password>
     </properties>
 
     <modules>
         <module>jOOQ-demo-utils</module>
         <module>jOOQ-demo-java</module>
+        <!--
         <module>jOOQ-demo-kotlin</module>
         <module>jOOQ-demo-scala</module>
+        -->
     </modules>
 
     <dependencyManagement>
@@ -66,6 +69,16 @@
                 <groupId>org.postgresql</groupId>
                 <artifactId>r2dbc-postgresql</artifactId>
                 <version>1.0.0.RELEASE</version>
+            </dependency>
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>5.1.34</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid</artifactId>
+                <version>1.1.10</version>
             </dependency>
             <dependency>
                 <groupId>org.flywaydb</groupId>
@@ -102,13 +115,16 @@
                 <type>jar</type>
                 <scope>test</scope>
             </dependency>
+            <!--
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>postgresql</artifactId>
                 <version>${testcontainers.version}</version>
             </dependency>
+            -->
 
             <!-- Kotlin -->
+            <!--
             <dependency>
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-kotlin</artifactId>
@@ -135,8 +151,10 @@
                 <artifactId>kotlin-stdlib-jdk8</artifactId>
                 <version>${kotlin.version}</version>
             </dependency>
+            -->
 
             <!-- Scala -->
+            <!--
             <dependency>
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-scala_2.13</artifactId>
@@ -153,6 +171,7 @@
                 <artifactId>scala-compiler</artifactId>
                 <version>${scala.version}</version>
             </dependency>
+            -->
         </dependencies>
     </dependencyManagement>
 
@@ -164,7 +183,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.10.1</version>
                     <configuration>
-                        <release>17</release>
+<!--                        <release>17</release>-->
                         <source>17</source>
                         <target>17</target>
                     </configuration>
@@ -172,62 +191,62 @@
 
                 <!-- Much better if there was a testcontainers lifecycle management plugin!
                      Upvote here if you like the idea: https://github.com/testcontainers/testcontainers-java/issues/4397 -->
-                <plugin>
-                    <groupId>org.codehaus.gmaven</groupId>
-                    <artifactId>groovy-maven-plugin</artifactId>
-                    <version>2.1.1</version>
-                    <executions>
-                        <execution>
+<!--                <plugin>-->
+<!--                    <groupId>org.codehaus.gmaven</groupId>-->
+<!--                    <artifactId>groovy-maven-plugin</artifactId>-->
+<!--                    <version>2.1.1</version>-->
+<!--                    <executions>-->
+<!--                        <execution>-->
 
-                            <!-- Start testcontainers before code generation -->
-                            <id>testcontainers-start</id>
-                            <phase>generate-sources</phase>
-                            <goals>
-                                <goal>execute</goal>
-                            </goals>
-                            <configuration>
-                                <source>
-                                    db = new org.testcontainers.containers.PostgreSQLContainer("postgres:latest")
-                                            .withUsername("${db.username}")
-                                            .withDatabaseName("postgres")
-                                            .withPassword("${db.password}")
+<!--                            &lt;!&ndash; Start testcontainers before code generation &ndash;&gt;-->
+<!--                            <id>testcontainers-start</id>-->
+<!--                            <phase>generate-sources</phase>-->
+<!--                            <goals>-->
+<!--                                <goal>execute</goal>-->
+<!--                            </goals>-->
+<!--                            <configuration>-->
+<!--                                <source>-->
+<!--                                    db = new org.testcontainers.containers.PostgreSQLContainer("postgres:latest")-->
+<!--                                            .withUsername("${db.username}")-->
+<!--                                            .withDatabaseName("postgres")-->
+<!--                                            .withPassword("${db.password}")-->
 
-                                    db.start()
-                                    project.properties.setProperty('db.url', db.getJdbcUrl())
-                                    project.properties.setProperty('testcontainers.containerId', db.getContainerId());
-                                    project.properties.setProperty('testcontainers.imageName', db.getDockerImageName());
-                                </source>
-                            </configuration>
-                        </execution>
-                        <execution>
+<!--                                    db.start()-->
+<!--                                    project.properties.setProperty('db.url', db.getJdbcUrl())-->
+<!--                                    project.properties.setProperty('testcontainers.containerId', db.getContainerId());-->
+<!--                                    project.properties.setProperty('testcontainers.imageName', db.getDockerImageName());-->
+<!--                                </source>-->
+<!--                            </configuration>-->
+<!--                        </execution>-->
+<!--                        <execution>-->
 
-                            <!-- Stop testcontainers after tests have completed -->
-                            <id>testcontainers-stop</id>
-                            <phase>post-integration-test</phase>
-                            <goals>
-                                <goal>execute</goal>
-                            </goals>
-                            <configuration>
-                                <source>
-                                    containerId = "${testcontainers.containerId}"
-                                    imageName = "${testcontainers.imageName}"
-                                    println("Stopping testcontainer $containerId - $imageName")
-                                    org.testcontainers.utility.ResourceReaper
-                                            .instance()
-                                            .stopAndRemoveContainer(containerId, imageName);
-                                </source>
-                            </configuration>
-                        </execution>
-                    </executions>
+<!--                            &lt;!&ndash; Stop testcontainers after tests have completed &ndash;&gt;-->
+<!--                            <id>testcontainers-stop</id>-->
+<!--                            <phase>post-integration-test</phase>-->
+<!--                            <goals>-->
+<!--                                <goal>execute</goal>-->
+<!--                            </goals>-->
+<!--                            <configuration>-->
+<!--                                <source>-->
+<!--                                    containerId = "${testcontainers.containerId}"-->
+<!--                                    imageName = "${testcontainers.imageName}"-->
+<!--                                    println("Stopping testcontainer $containerId - $imageName")-->
+<!--                                    org.testcontainers.utility.ResourceReaper-->
+<!--                                            .instance()-->
+<!--                                            .stopAndRemoveContainer(containerId, imageName);-->
+<!--                                </source>-->
+<!--                            </configuration>-->
+<!--                        </execution>-->
+<!--                    </executions>-->
 
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.testcontainers</groupId>
-                            <artifactId>postgresql</artifactId>
-                            <version>${testcontainers.version}</version>
-                        </dependency>
-                    </dependencies>
-                </plugin>
+<!--                    <dependencies>-->
+<!--                        <dependency>-->
+<!--                            <groupId>org.testcontainers</groupId>-->
+<!--                            <artifactId>postgresql</artifactId>-->
+<!--                            <version>${testcontainers.version}</version>-->
+<!--                        </dependency>-->
+<!--                    </dependencies>-->
+<!--                </plugin>-->
 
                 <plugin>
                     <groupId>org.flywaydb</groupId>
@@ -243,12 +262,13 @@
                     </executions>
 
                     <configuration>
+                        <driver>com.mysql.jdbc.Driver</driver>
                         <!-- This URL is exported by testcontainers above -->
                         <url>${db.url}</url>
                         <user>${db.username}</user>
                         <password>${db.password}</password>
                         <locations>
-                            <location>filesystem:../../sakila/postgres</location>
+                            <location>filesystem:sakila/mysql</location>
                         </locations>
                     </configuration>
                 </plugin>
@@ -262,7 +282,7 @@
                     <configuration>
                         <onUnused>SILENT</onUnused>
                         <jdbc>
-                            <driver>org.postgresql.Driver</driver>
+                            <driver>com.mysql.jdbc.Driver</driver>
                             <!-- This URL is exported by testcontainers above -->
                             <url>${db.url}</url>
                             <user>${db.username}</user>
